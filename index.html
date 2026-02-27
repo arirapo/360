@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>360 Panorama — drag to look around</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+    #app { position: fixed; inset: 0; }
+    #hint {
+      position: fixed;
+      left: 12px; bottom: 12px;
+      padding: 10px 12px;
+      font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: rgba(255,255,255,0.85);
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      backdrop-filter: blur(6px);
+      user-select: none;
+      max-width: min(520px, calc(100vw - 24px));
+    }
+    #hint b { color: #fff; }
+    #fileNote { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hint">
+    <b>360-panoraama</b> — vedä hiirellä/kosketuksella.
+    Rulla/pinch zoomaa. Kaksoisklikkaus nollaa.
+    <div id="fileNote">Käytä omaa 2:1 equirect-kuvaa: <code>panorama.jpg</code></div>
+  </div>
+
+  <!-- Three.js (ES Modules) CDN -->
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js";
+    import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js";
+
+    const container = document.getElementById("app");
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    // Scene + Camera
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 0.01);
+
+    // Controls (drag to look around)
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enablePan = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.rotateSpeed = 0.35;
+
+    // Zoom (wheel/pinch)
+    controls.enableZoom = true;
+    controls.minDistance = 0.01;
+    controls.maxDistance = 1.0;
+
+    // Limit vertical look so it feels natural (optional)
+    controls.minPolarAngle = 0.15;              // close to top
+    controls.maxPolarAngle = Math.PI - 0.15;    // close to bottom
+
+    // Sphere with inward-facing texture
+    const geometry = new THREE.SphereGeometry(500, 64, 32);
+    geometry.scale(-1, 1, 1); // invert the sphere so texture is inside
+
+    const material = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+
+    // Load panorama texture (put panorama.jpg next to this HTML)
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      "./panorama.jpg",
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace; // correct color (three r152+)
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        sphere.material.map = tex;
+        sphere.material.needsUpdate = true;
+      },
+      undefined,
+      (err) => {
+        console.error("Texture load failed:", err);
+        const note = document.getElementById("fileNote");
+        note.innerHTML = 'En löytänyt <code>panorama.jpg</code>. Lisää 360-kuva samaan kansioon tai muuta polkua koodissa.';
+      }
+    );
+
+    // Double click/tap to reset view
+    function resetView() {
+      controls.reset();
+      camera.fov = 75;
+      camera.updateProjectionMatrix();
+    }
+    renderer.domElement.addEventListener("dblclick", resetView);
+
+    // Basic animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize handling
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Optional: Prevent page scrolling on touch when interacting
+    renderer.domElement.style.touchAction = "none";
+  </script>
+</body>
+</html>
