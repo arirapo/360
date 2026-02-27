@@ -76,21 +76,37 @@
 
     // Load panorama texture (put panorama.jpg next to this HTML)
     const loader = new THREE.TextureLoader();
-    loader.load(
-      "./panorama.jpg",
-      (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace; // correct color (three r152+)
-        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        sphere.material.map = tex;
-        sphere.material.needsUpdate = true;
-      },
-      undefined,
-      (err) => {
-        console.error("Texture load failed:", err);
-        const note = document.getElementById("fileNote");
-        note.innerHTML = 'En löytänyt <code>panorama.jpg</code>. Lisää 360-kuva samaan kansioon tai muuta polkua koodissa.';
-      }
-    );
+ (loader.load(
+  "./panorama.jpg",
+  (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    sphere.material.map = tex;
+    sphere.material.needsUpdate = true;
+  },
+  undefined,
+  (err) => {
+    console.error("Texture load failed:", err);
+
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "12px";
+    overlay.style.padding = "12px";
+    overlay.style.background = "rgba(0,0,0,0.7)";
+    overlay.style.border = "1px solid rgba(255,255,255,0.2)";
+    overlay.style.borderRadius = "12px";
+    overlay.style.color = "white";
+    overlay.style.font = "14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    overlay.innerHTML = `
+      <b>Panoraamaa ei saatu ladattua.</b><br><br>
+      Yleisimmät syyt:<br>
+      1) Avasit tiedoston suoraan (file://). Käytä paikallista palvelinta: <code>python3 -m http.server 8000</code><br>
+      2) Kuvaa ei löydy / nimi ei täsmää: <code>panorama.jpg</code> samassa kansiossa kuin <code>index.html</code><br><br>
+      Katso konsoli (Developer Tools) tarkkaan virheilmoitusta varten.
+    `;
+    document.body.appendChild(overlay);
+  }
+)));
 
     // Double click/tap to reset view
     function resetView() {
