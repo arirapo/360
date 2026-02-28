@@ -15,10 +15,7 @@
       background: #000;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
     }
-    #container {
-      width: 100%;
-      height: 100%;
-    }
+    #container { width: 100%; height: 100%; }
     #error {
       position: fixed;
       inset: 0;
@@ -53,7 +50,6 @@
     </div>
   </div>
 
-  <!-- Three.js (ei moduleita, ei importteja) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
@@ -65,16 +61,15 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // ✅ IMPORTANT: correct gamma/output so JPEG (sRGB) won't look too dark
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
     container.appendChild(renderer.domElement);
 
     // Scene & camera
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      1,
-      1100
-    );
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
     camera.position.set(0, 0, 0.1);
 
     // Controls
@@ -99,6 +94,9 @@
     loader.load(
       'panorama.jpg',
       function (texture) {
+        // ✅ IMPORTANT: tell three.js the texture is sRGB (typical JPEG)
+        texture.encoding = THREE.sRGBEncoding;
+
         texture.minFilter = THREE.LinearFilter;
         sphere.material.map = texture;
         sphere.material.needsUpdate = true;
